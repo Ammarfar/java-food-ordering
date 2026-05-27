@@ -1,0 +1,53 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+build/
+.gradle/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Application config
+application-local.yml
+application-secret.yml
+.env
+
+# Java crash logs
+hs_err_pid*
+
+# Generated files
+*.jar
+*.war
+*.ear
+
+# Lombok
+lombok.config
+
+# Coverage / test reports
+coverage/
+jacoco.exec
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+tmp/
+temp/
