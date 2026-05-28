@@ -12,6 +12,7 @@ This repository contains the backend service for:
 - Order checkout
 - Order history for user and admin
 - Swagger/OpenAPI documentation
+- 100% unit test coverage for domain layer (Entity & Service)
 
 ## Tech Stack
 
