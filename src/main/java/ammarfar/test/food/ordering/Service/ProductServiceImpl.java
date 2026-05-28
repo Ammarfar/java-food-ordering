@@ -43,9 +43,11 @@ public class ProductServiceImpl implements ProductService {
   }
 
   @Override
-  public PageResponse<Product> getProducts(int pageNo, int pageSize) {
+  public PageResponse<Product> getProducts(int pageNo, int pageSize, String name) {
     Pageable pageable = PageRequest.of(pageNo, pageSize);
-    Page<Product> productsPage = productRepository.findAll(pageable);
+    Page<Product> productsPage = (name == null || name.isBlank())
+        ? productRepository.findAll(pageable)
+        : productRepository.findByNameContainingIgnoreCase(name.trim(), pageable);
 
     return PageResponse.<Product>builder()
         .content(productsPage.getContent())

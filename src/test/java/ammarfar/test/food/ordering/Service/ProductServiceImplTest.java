@@ -1,8 +1,19 @@
 package ammarfar.test.food.ordering.Service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,13 +23,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
 import ammarfar.test.food.ordering.Dto.PageResponse;
 import ammarfar.test.food.ordering.Dto.ProductRequest;
 import ammarfar.test.food.ordering.Entity.Product;
 import ammarfar.test.food.ordering.Repository.ProductRepository;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceImplTest {
@@ -34,7 +43,8 @@ class ProductServiceImplTest {
     Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
     when(productRepository.save(any(Product.class))).thenReturn(product);
 
-    Product created = productService.createProduct(new ProductRequest("Nasi Goreng", "Enak", BigDecimal.valueOf(15000)));
+    Product created = productService
+        .createProduct(new ProductRequest("Nasi Goreng", "Enak", BigDecimal.valueOf(15000)));
 
     assertNotNull(created);
     assertEquals("Nasi Goreng", created.getName());
@@ -43,14 +53,14 @@ class ProductServiceImplTest {
 
   @Test
   void testCreateProduct_InvalidName_ThrowsException() {
-    assertThrows(IllegalArgumentException.class, () ->
-        productService.createProduct(new ProductRequest("", "Enak", BigDecimal.valueOf(15000))));
+    assertThrows(IllegalArgumentException.class,
+        () -> productService.createProduct(new ProductRequest("", "Enak", BigDecimal.valueOf(15000))));
   }
 
   @Test
   void testCreateProduct_NegativePrice_ThrowsException() {
-    assertThrows(IllegalArgumentException.class, () ->
-        productService.createProduct(new ProductRequest("Nasi Goreng", "Enak", BigDecimal.valueOf(-1))));
+    assertThrows(IllegalArgumentException.class,
+        () -> productService.createProduct(new ProductRequest("Nasi Goreng", "Enak", BigDecimal.valueOf(-1))));
   }
 
   @Test
@@ -92,9 +102,8 @@ class ProductServiceImplTest {
   void testUpdateProduct_NotFound_ThrowsException() {
     when(productRepository.findById(1L)).thenReturn(Optional.empty());
 
-    assertThrows(IllegalArgumentException.class, () ->
-        productService.updateProduct(1L,
-            new ProductRequest("Nasi Goreng Spesial", "Lebih Enak", BigDecimal.valueOf(18000))));
+    assertThrows(IllegalArgumentException.class, () -> productService.updateProduct(1L,
+        new ProductRequest("Nasi Goreng Spesial", "Lebih Enak", BigDecimal.valueOf(18000))));
   }
 
   @Test
@@ -102,9 +111,8 @@ class ProductServiceImplTest {
     Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
     when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
-    assertThrows(IllegalArgumentException.class, () ->
-        productService.updateProduct(1L,
-            new ProductRequest("Nasi Goreng Spesial", "Lebih Enak", BigDecimal.valueOf(-1))));
+    assertThrows(IllegalArgumentException.class, () -> productService.updateProduct(1L,
+        new ProductRequest("Nasi Goreng Spesial", "Lebih Enak", BigDecimal.valueOf(-1))));
   }
 
   @Test
@@ -133,7 +141,7 @@ class ProductServiceImplTest {
 
     when(productRepository.findAll(pageable)).thenReturn(page);
 
-    PageResponse<Product> response = productService.getProducts(0, 10);
+    PageResponse<Product> response = productService.getProducts(0, 10, null);
 
     assertNotNull(response);
     assertEquals(1, response.getContent().size());
@@ -142,5 +150,35 @@ class ProductServiceImplTest {
     assertEquals(1, response.getTotalElements());
     assertEquals(1, response.getTotalPages());
     assertTrue(response.isLast());
+  }
+
+  @Test
+  void testGetProducts_BlankName() {
+    Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
+
+    when(productRepository.findAll(pageable)).thenReturn(page);
+
+    PageResponse<Product> response = productService.getProducts(0, 10, " ");
+
+    assertNotNull(response);
+    assertEquals(1, response.getContent().size());
+    verify(productRepository, times(1)).findAll(pageable);
+  }
+
+  @Test
+  void testGetProducts_FilterByName() {
+    Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
+
+    when(productRepository.findByNameContainingIgnoreCase("nasi", pageable)).thenReturn(page);
+
+    PageResponse<Product> response = productService.getProducts(0, 10, "nasi");
+
+    assertNotNull(response);
+    assertEquals(1, response.getContent().size());
+    verify(productRepository, times(1)).findByNameContainingIgnoreCase("nasi", pageable);
   }
 }

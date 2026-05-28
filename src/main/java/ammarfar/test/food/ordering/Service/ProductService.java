@@ -13,5 +13,5 @@ public interface ProductService {
 
   Product getProductById(Long id);
 
-  PageResponse<Product> getProducts(int pageNo, int pageSize);
+  PageResponse<Product> getProducts(int pageNo, int pageSize, String name);
 }
