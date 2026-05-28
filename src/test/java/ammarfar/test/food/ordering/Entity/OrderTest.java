@@ -14,6 +14,7 @@ class OrderTest {
     assertEquals(user, order.getUser());
     assertTrue(order.getItems().isEmpty());
     assertEquals(BigDecimal.ZERO, order.grandTotal());
+    assertEquals(OrderStatus.PENDING, order.getStatus());
   }
 
   @Test
@@ -62,5 +63,23 @@ class OrderTest {
     order.addItem(p2, 3); // 15000
 
     assertEquals(BigDecimal.valueOf(45000), order.grandTotal());
+  }
+
+  @Test
+  void testUpdateStatus_Success() {
+    User user = new User();
+    Order order = new Order(user);
+    order.updateStatus(OrderStatus.COMPLETED);
+    assertEquals(OrderStatus.COMPLETED, order.getStatus());
+  }
+
+  @Test
+  void testUpdateStatus_NullStatus_ThrowsException() {
+    User user = new User();
+    Order order = new Order(user);
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+      order.updateStatus(null);
+    });
+    assertEquals("status cannot be empty", exception.getMessage());
   }
 }
