@@ -3,6 +3,7 @@ package ammarfar.test.food.ordering.Controller;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -18,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import ammarfar.test.food.ordering.Dto.LoginRequest;
 import ammarfar.test.food.ordering.Entity.Product;
 import ammarfar.test.food.ordering.Entity.Role;
 import ammarfar.test.food.ordering.Entity.User;
@@ -157,6 +157,40 @@ class OrderControllerE2ETest {
     mockMvc.perform(get("/api/orders/admin")
         .param("pageNo", "1")
         .param("pageSize", "10"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.message").value("Forbidden"));
+  }
+
+  @Test
+  @WithMockUser(username = "admin@example.com", roles = "ADMIN")
+  void updateOrderStatus_asAdmin_returnsUpdatedOrder() throws Exception {
+    createUser("admin@example.com", Role.ADMIN);
+    Product product = productRepository.save(new Product(
+        "Ayam Geprek",
+        "Pedas",
+        BigDecimal.valueOf(18000)));
+    createOrderFor(product.getId(), 1);
+    Long orderId = orderRepository.findAll().get(0).getId();
+
+    mockMvc.perform(put("/api/orders/{id}/status", orderId)
+        .contentType("application/json")
+        .content("""
+            {"status":"PREPARING"}
+            """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Order status updated"))
+        .andExpect(jsonPath("$.data.id").value(orderId))
+        .andExpect(jsonPath("$.data.status").value("PREPARING"));
+  }
+
+  @Test
+  @WithMockUser(username = "user@example.com", roles = "USER")
+  void updateOrderStatus_asNonAdmin_returnsForbidden() throws Exception {
+    mockMvc.perform(put("/api/orders/{id}/status", 1)
+        .contentType("application/json")
+        .content("""
+            {"status":"PREPARING"}
+            """))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.message").value("Forbidden"));
   }

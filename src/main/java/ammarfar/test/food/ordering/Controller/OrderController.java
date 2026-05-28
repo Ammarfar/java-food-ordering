@@ -7,7 +7,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,9 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 import ammarfar.test.food.ordering.Dto.ApiResponse;
 import ammarfar.test.food.ordering.Dto.OrderItemRequest;
 import ammarfar.test.food.ordering.Dto.OrderResponse;
+import ammarfar.test.food.ordering.Dto.OrderStatusUpdateRequest;
 import ammarfar.test.food.ordering.Dto.PageResponse;
 import ammarfar.test.food.ordering.Entity.User;
-import ammarfar.test.food.ordering.Repository.UserRepository;
+import ammarfar.test.food.ordering.Security.AuthenticatedUserProvider;
 import ammarfar.test.food.ordering.Service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,11 +40,11 @@ import jakarta.validation.constraints.Positive;
 public class OrderController {
 
   private final OrderService orderService;
-  private final UserRepository userRepository;
+  private final AuthenticatedUserProvider authenticatedUserProvider;
 
-  public OrderController(OrderService orderService, UserRepository userRepository) {
+  public OrderController(OrderService orderService, AuthenticatedUserProvider authenticatedUserProvider) {
     this.orderService = orderService;
-    this.userRepository = userRepository;
+    this.authenticatedUserProvider = authenticatedUserProvider;
   }
 
   @PostMapping
@@ -55,7 +58,7 @@ public class OrderController {
   public ApiResponse<OrderResponse> placeOrder(
       Authentication authentication,
       @RequestBody @Valid List<@Valid OrderItemRequest> items) {
-    User user = getCurrentUser(authentication);
+    User user = authenticatedUserProvider.getCurrentUser(authentication);
 
     return ApiResponse.of("Order created", OrderResponse.from(orderService.placeOrder(user, items)));
   }
@@ -70,7 +73,7 @@ public class OrderController {
       Authentication authentication,
       @Parameter(description = "Page number, 1-based") @RequestParam(defaultValue = "1") @Min(1) int pageNo,
       @Parameter(description = "Page size") @RequestParam(defaultValue = "10") @Positive int pageSize) {
-    User user = getCurrentUser(authentication);
+    User user = authenticatedUserProvider.getCurrentUser(authentication);
     int zeroBasedPageNo = Math.max(pageNo, 1) - 1;
     PageResponse<ammarfar.test.food.ordering.Entity.Order> response = orderService.getOrders(user, zeroBasedPageNo,
         pageSize);
@@ -112,13 +115,21 @@ public class OrderController {
     return ApiResponse.of("Orders fetched", body);
   }
 
-  private User getCurrentUser(Authentication authentication) {
-    if (authentication == null || authentication.getName() == null) {
-      throw new IllegalArgumentException("authenticated user cannot be empty");
-    }
-
-    return userRepository.findByEmail(authentication.getName())
-        .orElseThrow(() -> new IllegalArgumentException(
-            "User not found with email: " + authentication.getName()));
+  @PutMapping("/{id}/status")
+  @PreAuthorize("hasRole('ADMIN')")
+  @Operation(summary = "Update order status", security = @SecurityRequirement(name = "bearerAuth"))
+  @ApiResponses({
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Order status updated"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid status payload"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden"),
+      @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Order not found")
+  })
+  public ApiResponse<OrderResponse> updateOrderStatus(
+      @PathVariable Long id,
+      @RequestBody @Valid OrderStatusUpdateRequest request) {
+    return ApiResponse.of("Order status updated", OrderResponse.from(
+        orderService.updateOrderStatus(id, request.status())));
   }
+
 }
