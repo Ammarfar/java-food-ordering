@@ -1,6 +1,7 @@
 package ammarfar.test.food.ordering.Service;
 
 import ammarfar.test.food.ordering.Dto.PageResponse;
+import ammarfar.test.food.ordering.Dto.ProductFilterRequest;
 import ammarfar.test.food.ordering.Dto.ProductRequest;
 import ammarfar.test.food.ordering.Entity.Product;
 
@@ -13,5 +14,5 @@ public interface ProductService {
 
   Product getProductById(Long id);
 
-  PageResponse<Product> getProducts(int pageNo, int pageSize, String name);
+  PageResponse<Product> getProducts(int pageNo, int pageSize, ProductFilterRequest filter);
 }

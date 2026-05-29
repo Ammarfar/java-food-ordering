@@ -1,5 +1,7 @@
 package ammarfar.test.food.ordering.Controller;
 
+import java.math.BigDecimal;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ammarfar.test.food.ordering.Dto.ApiResponse;
 import ammarfar.test.food.ordering.Dto.PageResponse;
+import ammarfar.test.food.ordering.Dto.ProductFilterRequest;
 import ammarfar.test.food.ordering.Dto.ProductRequest;
 import ammarfar.test.food.ordering.Dto.ProductResponse;
 import ammarfar.test.food.ordering.Entity.Product;
@@ -101,10 +104,12 @@ public class ProductController {
   public ApiResponse<PageResponse<ProductResponse>> getProducts(
       @Parameter(description = "Page number, 1-based") @RequestParam(defaultValue = "1") @Min(1) int pageNo,
       @Parameter(description = "Page size") @RequestParam(defaultValue = "10") @Positive int pageSize,
-      @Parameter(description = "Filter by product name")
-      @RequestParam(required = false) String name) {
+      @Parameter(description = "Filter by product name") @RequestParam(required = false) String name,
+      @Parameter(description = "Minimum product price") @RequestParam(required = false) BigDecimal minPrice,
+      @Parameter(description = "Maximum product price") @RequestParam(required = false) BigDecimal maxPrice) {
     int zeroBasedPageNo = Math.max(pageNo, 1) - 1;
-    PageResponse<Product> response = productService.getProducts(zeroBasedPageNo, pageSize, name);
+    ProductFilterRequest filter = new ProductFilterRequest(name, minPrice, maxPrice);
+    PageResponse<Product> response = productService.getProducts(zeroBasedPageNo, pageSize, filter);
     PageResponse<ProductResponse> body = PageResponse.<ProductResponse>builder()
         .content(response.getContent().stream().map(ProductResponse::from).toList())
         .pageNo(response.getPageNo() + 1)

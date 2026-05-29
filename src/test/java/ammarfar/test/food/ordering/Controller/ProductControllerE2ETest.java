@@ -101,6 +101,54 @@ class ProductControllerE2ETest {
   }
 
   @Test
+  void getProducts_withPriceRange_returnsMatchedItems() throws Exception {
+    productRepository.save(new Product("Es Teh", "Segar", BigDecimal.valueOf(5000)));
+    productRepository.save(new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000)));
+    productRepository.save(new Product("Rendang", "Gurih", BigDecimal.valueOf(32000)));
+
+    mockMvc.perform(get("/api/products")
+        .param("pageNo", "1")
+        .param("pageSize", "10")
+        .param("minPrice", "10000")
+        .param("maxPrice", "20000"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Products fetched"))
+        .andExpect(jsonPath("$.data.content", hasSize(1)))
+        .andExpect(jsonPath("$.data.content[0].name").value("Nasi Goreng"))
+        .andExpect(jsonPath("$.data.totalElements").value(1));
+  }
+
+  @Test
+  void getProducts_withNameAndPriceRange_returnsMatchedItems() throws Exception {
+    productRepository.save(new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000)));
+    productRepository.save(new Product("Nasi Uduk", "Gurih", BigDecimal.valueOf(9000)));
+    productRepository.save(new Product("Mie Ayam", "Enak", BigDecimal.valueOf(17000)));
+
+    mockMvc.perform(get("/api/products")
+        .param("pageNo", "1")
+        .param("pageSize", "10")
+        .param("name", "nasi")
+        .param("minPrice", "10000")
+        .param("maxPrice", "20000"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Products fetched"))
+        .andExpect(jsonPath("$.data.content", hasSize(1)))
+        .andExpect(jsonPath("$.data.content[0].name").value("Nasi Goreng"))
+        .andExpect(jsonPath("$.data.totalElements").value(1));
+  }
+
+  @Test
+  void getProducts_withInvalidPriceRange_returnsBadRequest() throws Exception {
+    mockMvc.perform(get("/api/products")
+        .param("pageNo", "1")
+        .param("pageSize", "10")
+        .param("minPrice", "20000")
+        .param("maxPrice", "10000"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.message").value("minPrice cannot be greater than maxPrice"));
+  }
+
+  @Test
   void getProductById_returnsProductResponse() throws Exception {
     Product product = productRepository.save(new Product("Mie Ayam", "Enak", BigDecimal.valueOf(17000)));
 

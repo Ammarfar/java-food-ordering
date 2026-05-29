@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,8 +24,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import ammarfar.test.food.ordering.Dto.PageResponse;
+import ammarfar.test.food.ordering.Dto.ProductFilterRequest;
 import ammarfar.test.food.ordering.Dto.ProductRequest;
 import ammarfar.test.food.ordering.Entity.Product;
 import ammarfar.test.food.ordering.Repository.ProductRepository;
@@ -139,9 +142,9 @@ class ProductServiceImplTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
 
-    when(productRepository.findAll(pageable)).thenReturn(page);
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
 
-    PageResponse<Product> response = productService.getProducts(0, 10, null);
+    PageResponse<Product> response = productService.getProducts(0, 10, new ProductFilterRequest(null, null, null));
 
     assertNotNull(response);
     assertEquals(1, response.getContent().size());
@@ -158,13 +161,13 @@ class ProductServiceImplTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
 
-    when(productRepository.findAll(pageable)).thenReturn(page);
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
 
-    PageResponse<Product> response = productService.getProducts(0, 10, " ");
+    PageResponse<Product> response = productService.getProducts(0, 10, new ProductFilterRequest(" ", null, null));
 
     assertNotNull(response);
     assertEquals(1, response.getContent().size());
-    verify(productRepository, times(1)).findAll(pageable);
+    verify(productRepository, times(1)).findAll(any(Specification.class), eq(pageable));
   }
 
   @Test
@@ -173,12 +176,66 @@ class ProductServiceImplTest {
     Pageable pageable = PageRequest.of(0, 10);
     Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
 
-    when(productRepository.findByNameContainingIgnoreCase("nasi", pageable)).thenReturn(page);
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
 
-    PageResponse<Product> response = productService.getProducts(0, 10, "nasi");
+    PageResponse<Product> response = productService.getProducts(0, 10, new ProductFilterRequest("nasi", null, null));
 
     assertNotNull(response);
     assertEquals(1, response.getContent().size());
-    verify(productRepository, times(1)).findByNameContainingIgnoreCase("nasi", pageable);
+    verify(productRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+  }
+
+  @Test
+  void testGetProducts_FilterByMinPrice() {
+    Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
+
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+
+    PageResponse<Product> response = productService.getProducts(0, 10,
+        new ProductFilterRequest(null, BigDecimal.valueOf(10000), null));
+
+    assertNotNull(response);
+    assertEquals(1, response.getContent().size());
+    verify(productRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+  }
+
+  @Test
+  void testGetProducts_FilterByMaxPrice() {
+    Product product = new Product("Es Teh", "Segar", BigDecimal.valueOf(5000));
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
+
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+
+    PageResponse<Product> response = productService.getProducts(0, 10,
+        new ProductFilterRequest(null, null, BigDecimal.valueOf(10000)));
+
+    assertNotNull(response);
+    assertEquals(1, response.getContent().size());
+    verify(productRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+  }
+
+  @Test
+  void testGetProducts_FilterByNameAndPriceRange() {
+    Product product = new Product("Nasi Goreng", "Enak", BigDecimal.valueOf(15000));
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Product> page = new PageImpl<>(Collections.singletonList(product), pageable, 1);
+
+    when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+
+    PageResponse<Product> response = productService.getProducts(0, 10,
+        new ProductFilterRequest("nasi", BigDecimal.valueOf(10000), BigDecimal.valueOf(20000)));
+
+    assertNotNull(response);
+    assertEquals(1, response.getContent().size());
+    verify(productRepository, times(1)).findAll(any(Specification.class), eq(pageable));
+  }
+
+  @Test
+  void testGetProducts_InvalidPriceRange_ThrowsException() {
+    assertThrows(IllegalArgumentException.class,
+        () -> new ProductFilterRequest(null, BigDecimal.valueOf(20000), BigDecimal.valueOf(10000)));
   }
 }

@@ -7,9 +7,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ammarfar.test.food.ordering.Dto.PageResponse;
+import ammarfar.test.food.ordering.Dto.ProductFilterRequest;
 import ammarfar.test.food.ordering.Dto.ProductRequest;
 import ammarfar.test.food.ordering.Entity.Product;
 import ammarfar.test.food.ordering.Repository.ProductRepository;
+import ammarfar.test.food.ordering.Repository.Specification.ProductSpecification;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -43,11 +45,9 @@ public class ProductServiceImpl implements ProductService {
   }
 
   @Override
-  public PageResponse<Product> getProducts(int pageNo, int pageSize, String name) {
+  public PageResponse<Product> getProducts(int pageNo, int pageSize, ProductFilterRequest filter) {
     Pageable pageable = PageRequest.of(pageNo, pageSize);
-    Page<Product> productsPage = (name == null || name.isBlank())
-        ? productRepository.findAll(pageable)
-        : productRepository.findByNameContainingIgnoreCase(name.trim(), pageable);
+    Page<Product> productsPage = productRepository.findAll(ProductSpecification.from(filter), pageable);
 
     return PageResponse.<Product>builder()
         .content(productsPage.getContent())
